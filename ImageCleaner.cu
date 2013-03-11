@@ -7,6 +7,8 @@
 #error Please define SIZEY.
 #endif
 
+#define PI      3.14159256
+
 //----------------------------------------------------------------
 // TODO:  CREATE NEW KERNELS HERE.  YOU CAN PLACE YOUR CALLS TO
 //        THEM IN THE INDICATED SECTION INSIDE THE 'filterImage'
@@ -21,6 +23,75 @@ __global__ void exampleKernel(float *real_image, float *imag_image, int size_x, 
   // Currently does nothing
 }
 
+__global__ void cpu_fftx_cuda(float *real_image, float *imag_image, int size_x, int size_y)
+{
+
+//  int BlockIndex = blockIdx.x * blockDim.x;
+//  int index = blockIdx.x * blockDim.x + threadIdx.x;
+//  __shared__ float realOutBuffer[SIZEY];
+//  __shared__ float imagOutBuffer[SIZEY];
+
+  if(threadIdx.x<size_y){
+      float fft_real[SIZEY];
+      float fft_imag[SIZEY];
+      for(unsigned int n = 0; n < size_y; n++)
+      {
+        float term = -2 * PI * threadIdx.x * n / size_y;
+        fft_real[n] = cos(term);
+        fft_imag[n] = sin(term);
+      }
+
+      // Compute the value for this index
+      float real_value = 0;
+      float imag_value = 0;
+
+      for(unsigned int n = 0; n < size_y; n++)
+      {
+        real_value += (real_image[blockIdx.x*size_x + n] * fft_real[n]) - (imag_image[blockIdx.x*size_x + n] * fft_imag[n]);
+        imag_value += (imag_image[blockIdx.x*size_x + n] * fft_real[n]) + (real_image[blockIdx.x*size_x + n] * fft_imag[n]);
+      }
+
+      real_image[blockIdx.x*size_x + threadIdx.x] = real_value;
+      imag_image[blockIdx.x*size_x + threadIdx.x] = imag_value;
+	
+  }	
+
+}
+
+__global__ void cpu_ffty_cuda(float *real_image, float *imag_image, int size_x, int size_y)
+{
+
+//  int BlockIndex = blockIdx.x * blockDim.x;
+//  int index = blockIdx.x * blockDim.x + threadIdx.x;
+//  __shared__ float realOutBuffer[SIZEY];
+//  __shared__ float imagOutBuffer[SIZEY];
+
+  if(threadIdx.x<size_x){
+      float fft_real[SIZEX];
+      float fft_imag[SIZEX];
+      for(unsigned int n = 0; n < size_x; n++)
+      {
+        float term = -2 * PI * threadIdx.x * n / size_x;
+        fft_real[n] = cos(term);
+        fft_imag[n] = sin(term);
+      }
+
+      // Compute the value for this index
+      float real_value = 0;
+      float imag_value = 0;
+
+      for(unsigned int n = 0; n < size_x; n++)
+      {
+        real_value += (real_image[n*size_y + blockIdx.x] * fft_real[n]) - (imag_image[n*size_y + blockIdx.x] * fft_imag[n]);
+        imag_value += (imag_image[n*size_y + blockIdx.x] * fft_real[n]) + (real_image[n*size_y + blockIdx.x] * fft_imag[n]);
+      }
+
+      real_image[threadIdx.x*size_y + blockIdx.x] = real_value;
+      imag_image[threadIdx.x*size_y + blockIdx.x] = imag_value;
+	
+  }	
+
+}
 //----------------------------------------------------------------
 // END ADD KERNEL DEFINTIONS
 //----------------------------------------------------------------
@@ -81,6 +152,8 @@ __host__ float filterImage(float *real_image, float *imag_image, int size_x, int
   //
   // Also note that you pass the pointers to the device memory to the kernel call
   exampleKernel<<<1,128,0,filterStream>>>(device_real,device_imag,size_x,size_y);
+  cpu_fftx_cuda<<<SIZEX,SIZEY,0,filterStream>>>(device_real,device_imag,size_x,size_y);
+  cpu_ffty_cuda<<<SIZEY,SIZEX,0,filterStream>>>(device_real,device_imag,size_x,size_y);
 
   //---------------------------------------------------------------- 
   // END ADD KERNEL CALLS
