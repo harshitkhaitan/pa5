@@ -97,6 +97,40 @@ __global__ void cpu_ffty_cuda(float *real_image, float *imag_image, int size_x, 
 
 }
 
+__global__ void cpu_iffty_cuda(float *real_image, float *imag_image, int size_x, int size_y)
+{
+
+//  int BlockIndex = blockIdx.x * blockDim.x;
+//  int index = blockIdx.x * blockDim.x + threadIdx.x;
+//  __shared__ float realOutBuffer[SIZEY];
+//  __shared__ float imagOutBuffer[SIZEY];
+
+  if(threadIdx.x<size_x){
+      float fft_real[SIZEX];
+      float fft_imag[SIZEX];
+      for(unsigned int n = 0; n < size_x; n++)
+      {
+        float term = -2 * PI * threadIdx.x * n / size_x;
+        fft_real[n] = cos(term);
+        fft_imag[n] = sin(term);
+      }
+
+      // Compute the value for this index
+      float real_value = 0;
+      float imag_value = 0;
+
+      for(unsigned int n = 0; n < size_x; n++)
+      {
+        real_value += (real_image[n*size_y + blockIdx.x] * fft_real[n]) - (imag_image[n*size_y + blockIdx.x] * fft_imag[n]);
+        imag_value += (imag_image[n*size_y + blockIdx.x] * fft_real[n]) + (real_image[n*size_y + blockIdx.x] * fft_imag[n]);
+      }
+
+      real_image[threadIdx.x*size_y + blockIdx.x] = real_value/size_x;
+      imag_image[threadIdx.x*size_y + blockIdx.x] = imag_value/size_x;
+	
+  }	
+
+}
 __global__ void cpu_filter_cuda(float *real_image, float *imag_image, int size_x, int size_y)
 {
   int eightX = size_x/8;
@@ -116,6 +150,44 @@ __global__ void cpu_filter_cuda(float *real_image, float *imag_image, int size_x
 
 }
 
+__global__ void cpu_ifftx_cuda(float *real_image, float *imag_image, int size_x, int size_y)
+{
+
+//  int BlockIndex = blockIdx.x * blockDim.x;
+//  int index = blockIdx.x * blockDim.x + threadIdx.x;
+//  __shared__ float realOutBuffer[SIZEY];
+//  __shared__ float imagOutBuffer[SIZEY];
+
+  if(threadIdx.x<size_y){
+      float fft_real[SIZEY];
+      float fft_imag[SIZEY];
+      for(unsigned int n = 0; n < size_y; n++)
+      {
+        float term = -2 * PI * threadIdx.x * n / size_y;
+        fft_real[n] = cos(term);
+        fft_imag[n] = sin(term);
+      }
+
+      // Compute the value for this index
+      float real_value = 0;
+      float imag_value = 0;
+
+      for(unsigned int n = 0; n < size_y; n++)
+      {
+        real_value += (real_image[blockIdx.x*size_x + n] * fft_real[n]) - (imag_image[blockIdx.x*size_x + n] * fft_imag[n]);
+        imag_value += (imag_image[blockIdx.x*size_x + n] * fft_real[n]) + (real_image[blockIdx.x*size_x + n] * fft_imag[n]);
+      }
+
+      real_image[blockIdx.x*size_x + threadIdx.x] = real_value/size_y;
+      imag_image[blockIdx.x*size_x + threadIdx.x] = imag_value/size_y;
+
+//     printf("Block Idx %d \n", blockIdx.x);
+//      printf("Block DIM %d \n", blockDim.x);
+//      printf("Thread ID %d \n", threadIdx.x);
+	
+  }	
+
+}
 //----------------------------------------------------------------
 // END ADD KERNEL DEFINTIONS
 //----------------------------------------------------------------
@@ -179,6 +251,8 @@ __host__ float filterImage(float *real_image, float *imag_image, int size_x, int
   cpu_fftx_cuda<<<SIZEX,SIZEY,0,filterStream>>>(device_real,device_imag,size_x,size_y);
   cpu_ffty_cuda<<<SIZEY,SIZEX,0,filterStream>>>(device_real,device_imag,size_x,size_y);
   cpu_filter_cuda<<<SIZEX,SIZEY,0,filterStream>>>(device_real,device_imag,size_x,size_y);
+  cpu_ifftx_cuda<<<SIZEX,SIZEY,0,filterStream>>>(device_real,device_imag,size_x,size_y);
+  cpu_iffty_cuda<<<SIZEY,SIZEX,0,filterStream>>>(device_real,device_imag,size_x,size_y);
 
   //---------------------------------------------------------------- 
   // END ADD KERNEL CALLS
