@@ -53,6 +53,10 @@ __global__ void cpu_fftx_cuda(float *real_image, float *imag_image, int size_x, 
 
       real_image[blockIdx.x*size_x + threadIdx.x] = real_value;
       imag_image[blockIdx.x*size_x + threadIdx.x] = imag_value;
+
+//     printf("Block Idx %d \n", blockIdx.x);
+//      printf("Block DIM %d \n", blockDim.x);
+//      printf("Thread ID %d \n", threadIdx.x);
 	
   }	
 
@@ -92,6 +96,26 @@ __global__ void cpu_ffty_cuda(float *real_image, float *imag_image, int size_x, 
   }	
 
 }
+
+__global__ void cpu_filter_cuda(float *real_image, float *imag_image, int size_x, int size_y)
+{
+  int eightX = size_x/8;
+  //int eight7X = size_x - eightX;
+  int eightY = size_y/8;
+  int eight7Y = size_y - eightY;
+
+  if(!(blockIdx.x < eightX && threadIdx.x < eightY) &&
+         !(blockIdx.x < eightX && threadIdx.x >= eight7Y) &&
+         !(blockIdx.x >= eight7Y && threadIdx.x < eightY) &&
+         !(blockIdx.x >= eight7Y && threadIdx.x >= eight7Y))
+      {
+        // Zero out these values
+        real_image[threadIdx.x*size_x + blockIdx.x] = 0;
+        imag_image[threadIdx.x*size_x + blockIdx.x] = 0;
+      }
+
+}
+
 //----------------------------------------------------------------
 // END ADD KERNEL DEFINTIONS
 //----------------------------------------------------------------
@@ -154,6 +178,7 @@ __host__ float filterImage(float *real_image, float *imag_image, int size_x, int
   exampleKernel<<<1,128,0,filterStream>>>(device_real,device_imag,size_x,size_y);
   cpu_fftx_cuda<<<SIZEX,SIZEY,0,filterStream>>>(device_real,device_imag,size_x,size_y);
   cpu_ffty_cuda<<<SIZEY,SIZEX,0,filterStream>>>(device_real,device_imag,size_x,size_y);
+  cpu_filter_cuda<<<SIZEX,SIZEY,0,filterStream>>>(device_real,device_imag,size_x,size_y);
 
   //---------------------------------------------------------------- 
   // END ADD KERNEL CALLS
