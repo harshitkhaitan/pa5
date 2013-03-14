@@ -53,7 +53,7 @@ __global__ void cpu_fftx_cuda(float *real_image, float *imag_image, int size_x, 
 
       real_image[blockIdx.x*size_x + threadIdx.x] = real_value;
       imag_image[blockIdx.x*size_x + threadIdx.x] = imag_value;
-      __syncthreads();
+//      __syncthreads();
 
 //     printf("Block Idx %d \n", blockIdx.x);
 //      printf("Block DIM %d \n", blockDim.x);
@@ -83,7 +83,7 @@ __global__ void cpu_ifftx_cuda(float *real_image, float *imag_image, int size_x,
 
       for(unsigned int n = 0; n < size_y; n++)
       {
-	float term = -2 * PI * threadIdx.x * n / size_y;
+	float term = 2 * PI * threadIdx.x * n / size_y;
 	fft_real = cos(term);
 	fft_imag = sin(term);
 
@@ -93,7 +93,7 @@ __global__ void cpu_ifftx_cuda(float *real_image, float *imag_image, int size_x,
 
       real_image[blockIdx.x*size_x + threadIdx.x] = real_value/size_y;
       imag_image[blockIdx.x*size_x + threadIdx.x] = imag_value/size_y;
-      __syncthreads();
+//      __syncthreads();
 
 //     printf("Block Idx %d \n", blockIdx.x);
 //      printf("Block DIM %d \n", blockDim.x);
@@ -133,7 +133,7 @@ __global__ void cpu_ffty_cuda(float *real_image, float *imag_image, int size_x, 
 
       real_image[threadIdx.x*size_x + blockIdx.x] = real_value;
       imag_image[threadIdx.x*size_x + blockIdx.x] = imag_value;
-      __syncthreads();
+//      __syncthreads();
 	
   }	
 
@@ -160,7 +160,7 @@ __global__ void cpu_iffty_cuda(float *real_image, float *imag_image, int size_x,
 
       for(unsigned int n = 0; n < size_x; n++)
       {
-        float term = -2 * PI * threadIdx.x * n / size_x;
+        float term = 2 * PI * threadIdx.x * n / size_x;
         fft_real = cos(term);
         fft_imag = sin(term);
 
@@ -170,7 +170,7 @@ __global__ void cpu_iffty_cuda(float *real_image, float *imag_image, int size_x,
 
       real_image[threadIdx.x*size_y + blockIdx.x] = real_value/size_x;
       imag_image[threadIdx.x*size_y + blockIdx.x] = imag_value/size_x;
-      __syncthreads();
+//      __syncthreads();
 	
   }	
 
