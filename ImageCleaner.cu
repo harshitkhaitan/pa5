@@ -30,36 +30,47 @@ __global__ void cpu_fftx_cuda(float *real_image, float *imag_image, int size_x, 
 //  int index = blockIdx.x * blockDim.x + threadIdx.x;
   __shared__ float realInBuffer[SIZEY];
   __shared__ float imagInBuffer[SIZEY];
+
+//  __shared__ float realOutBuffer[SIZEY];
+//  __shared__ float imagOutBuffer[SIZEY];
+
   float fft_real;
   float fft_imag;
   // Compute the value for this index
   float real_value = 0;
   float imag_value = 0;
 
+  int tx =  threadIdx.x;
+  int bx =  blockIdx.x * SIZEY;
+  int idx = bx + tx;
 
-  if(threadIdx.x<size_y){
-      realInBuffer[threadIdx.x] = real_image[blockIdx.x*size_x + threadIdx.x];
-      imagInBuffer[threadIdx.x] = imag_image[blockIdx.x*size_x + threadIdx.x];
+
+     realInBuffer[tx] = real_image[idx];
+     imagInBuffer[tx] = imag_image[idx];
+
       __syncthreads();
-      for(unsigned int n = 0; n < size_y; n++)
+
+      for(unsigned int n = 0; n < SIZEY; n++)
       {
-        float term = -2 * PI * threadIdx.x * n / size_y;
+        float term = -2 * PI * threadIdx.x * n / SIZEY;
         fft_real = cos(term);
         fft_imag = sin(term);
 
         real_value += (realInBuffer[n] * fft_real) - (imagInBuffer[n] * fft_imag);
         imag_value += (imagInBuffer[n] * fft_real) + (realInBuffer[n] * fft_imag);
+//        __syncthreads();
       }
 
-      real_image[blockIdx.x*size_x + threadIdx.x] = real_value;
-      imag_image[blockIdx.x*size_x + threadIdx.x] = imag_value;
 //      __syncthreads();
 
-//     printf("Block Idx %d \n", blockIdx.x);
-//      printf("Block DIM %d \n", blockDim.x);
-//      printf("Thread ID %d \n", threadIdx.x);
-	
-  }	
+ //      realOutBuffer[threadIdx.x] = real_value;
+ //      imagOutBuffer[threadIdx.x] = imag_value;
+
+      real_image[idx] = real_value;
+      imag_image[idx] = imag_value;
+//      real_image[blockIdx.x*SIZEX + threadIdx.x] = realOutBuffer[threadIdx.x];
+//      imag_image[blockIdx.x*SIZEX + threadIdx.x] = imagOutBuffer[threadIdx.x];
+//      __syncthreads();
 
 }
 
@@ -76,14 +87,14 @@ __global__ void cpu_ifftx_cuda(float *real_image, float *imag_image, int size_x,
       float fft_real;
       float fft_imag;
 
-  if(threadIdx.x<size_y){
-      realInBuffer[threadIdx.x] = real_image[blockIdx.x*size_x + threadIdx.x];
-      imagInBuffer[threadIdx.x] = imag_image[blockIdx.x*size_x + threadIdx.x];
+  if(threadIdx.x<SIZEY){
+      realInBuffer[threadIdx.x] = real_image[blockIdx.x*SIZEX + threadIdx.x];
+      imagInBuffer[threadIdx.x] = imag_image[blockIdx.x*SIZEX + threadIdx.x];
       __syncthreads();
 
-      for(unsigned int n = 0; n < size_y; n++)
+      for(unsigned int n = 0; n < SIZEY; n++)
       {
-	float term = 2 * PI * threadIdx.x * n / size_y;
+	float term = 2 * PI * threadIdx.x * n / SIZEY;
 	fft_real = cos(term);
 	fft_imag = sin(term);
 
@@ -91,8 +102,8 @@ __global__ void cpu_ifftx_cuda(float *real_image, float *imag_image, int size_x,
 	imag_value += (imagInBuffer[n] * fft_real) + (realInBuffer[n] * fft_imag);
       }
 
-      real_image[blockIdx.x*size_x + threadIdx.x] = real_value/size_y;
-      imag_image[blockIdx.x*size_x + threadIdx.x] = imag_value/size_y;
+      real_image[blockIdx.x*SIZEX + threadIdx.x] = real_value/SIZEY;
+      imag_image[blockIdx.x*SIZEX + threadIdx.x] = imag_value/SIZEY;
 //      __syncthreads();
 
 //     printf("Block Idx %d \n", blockIdx.x);
@@ -116,14 +127,14 @@ __global__ void cpu_ffty_cuda(float *real_image, float *imag_image, int size_x, 
       float real_value = 0;
       float imag_value = 0;
 
-  if(threadIdx.x<size_x){
-      realInBuffer[threadIdx.x] = real_image[threadIdx.x*size_x + blockIdx.x];
-      imagInBuffer[threadIdx.x] = imag_image[threadIdx.x*size_x + blockIdx.x];
+  if(threadIdx.x<SIZEX){
+      realInBuffer[threadIdx.x] = real_image[threadIdx.x*SIZEX + blockIdx.x];
+      imagInBuffer[threadIdx.x] = imag_image[threadIdx.x*SIZEX + blockIdx.x];
       __syncthreads();
 
-      for(unsigned int n = 0; n < size_x; n++)
+      for(unsigned int n = 0; n < SIZEX; n++)
       {
-        float term = -2 * PI * threadIdx.x * n / size_x;
+        float term = -2 * PI * threadIdx.x * n / SIZEX;
         fft_real = cos(term);
         fft_imag = sin(term);
 
@@ -131,8 +142,8 @@ __global__ void cpu_ffty_cuda(float *real_image, float *imag_image, int size_x, 
         imag_value += (imagInBuffer[n] * fft_real) + (realInBuffer[n] * fft_imag);
       }
 
-      real_image[threadIdx.x*size_x + blockIdx.x] = real_value;
-      imag_image[threadIdx.x*size_x + blockIdx.x] = imag_value;
+      real_image[threadIdx.x*SIZEX + blockIdx.x] = real_value;
+      imag_image[threadIdx.x*SIZEX + blockIdx.x] = imag_value;
 //      __syncthreads();
 	
   }	
@@ -153,14 +164,14 @@ __global__ void cpu_iffty_cuda(float *real_image, float *imag_image, int size_x,
       float imag_value = 0;
 
 
-  if(threadIdx.x<size_x){
-      realInBuffer[threadIdx.x] = real_image[threadIdx.x*size_x + blockIdx.x];
-      imagInBuffer[threadIdx.x] = imag_image[threadIdx.x*size_x + blockIdx.x];
+  if(threadIdx.x<SIZEX){
+      realInBuffer[threadIdx.x] = real_image[threadIdx.x*SIZEX + blockIdx.x];
+      imagInBuffer[threadIdx.x] = imag_image[threadIdx.x*SIZEX + blockIdx.x];
       __syncthreads();
 
-      for(unsigned int n = 0; n < size_x; n++)
+      for(unsigned int n = 0; n < SIZEX; n++)
       {
-        float term = 2 * PI * threadIdx.x * n / size_x;
+        float term = 2 * PI * threadIdx.x * n / SIZEX;
         fft_real = cos(term);
         fft_imag = sin(term);
 
@@ -168,8 +179,8 @@ __global__ void cpu_iffty_cuda(float *real_image, float *imag_image, int size_x,
         imag_value += (imagInBuffer[n] * fft_real) + (realInBuffer[n] * fft_imag);
       }
 
-      real_image[threadIdx.x*size_y + blockIdx.x] = real_value/size_x;
-      imag_image[threadIdx.x*size_y + blockIdx.x] = imag_value/size_x;
+      real_image[threadIdx.x*SIZEY + blockIdx.x] = real_value/SIZEX;
+      imag_image[threadIdx.x*SIZEY + blockIdx.x] = imag_value/SIZEX;
 //      __syncthreads();
 	
   }	
@@ -211,6 +222,10 @@ __host__ float filterImage(float *real_image, float *imag_image, int size_x, int
   // These variables are for timing purposes
   float transferDown = 0, transferUp = 0, execution = 0;
   cudaEvent_t start,stop;
+
+  // Custom measurement
+  cudaEvent_t start_me,stop_me;
+  float fftx = 0, ifftx = 0, filter = 0;
 
   CUDA_ERROR_CHECK(cudaEventCreate(&start));
   CUDA_ERROR_CHECK(cudaEventCreate(&stop));
@@ -255,8 +270,18 @@ __host__ float filterImage(float *real_image, float *imag_image, int size_x, int
   //    4. Stream to execute kernel on, should always be 'filterStream'
   //
   // Also note that you pass the pointers to the device memory to the kernel call
-  exampleKernel<<<1,128,0,filterStream>>>(device_real,device_imag,size_x,size_y);
+  //exampleKernel<<<1,128,0,filterStream>>>(device_real,device_imag,size_x,size_y);
+
+  CUDA_ERROR_CHECK(cudaEventCreate(&start_me));
+  CUDA_ERROR_CHECK(cudaEventCreate(&stop_me));
+  CUDA_ERROR_CHECK(cudaEventRecord(start_me,filterStream));
   cpu_fftx_cuda<<<SIZEX,SIZEY,0,filterStream>>>(device_real,device_imag,size_x,size_y);
+  CUDA_ERROR_CHECK(cudaEventRecord(stop_me,filterStream));
+  CUDA_ERROR_CHECK(cudaEventSynchronize(stop_me));
+  CUDA_ERROR_CHECK(cudaEventElapsedTime(&fftx,start_me,stop_me));
+  printf(" Cuda FFTx execution time: %f ms\n", fftx);
+
+
   cpu_ffty_cuda<<<SIZEY,SIZEX,0,filterStream>>>(device_real,device_imag,size_x,size_y);
   cpu_filter_cuda<<<SIZEX,SIZEY,0,filterStream>>>(device_real,device_imag,size_x,size_y);
   cpu_ifftx_cuda<<<SIZEX,SIZEY,0,filterStream>>>(device_real,device_imag,size_x,size_y);
