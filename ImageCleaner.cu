@@ -452,9 +452,9 @@ __host__ float filterImage(float *real_image, float *imag_image, int size_x, int
   float *cos_t, *sin_t;
   CUDA_ERROR_CHECK(cudaMalloc((void**)&cos_t, matSize));
   CUDA_ERROR_CHECK(cudaMalloc((void**)&sin_t, matSize));
-  float *real_m, *imag_m;
-  CUDA_ERROR_CHECK(cudaMalloc((void**)&real_m, matSize));
-  CUDA_ERROR_CHECK(cudaMalloc((void**)&imag_m, matSize));
+//  float *real_m, *imag_m;
+//  CUDA_ERROR_CHECK(cudaMalloc((void**)&real_m, matSize));
+//  CUDA_ERROR_CHECK(cudaMalloc((void**)&imag_m, matSize));
 
   // Start timing for transfer down
   CUDA_ERROR_CHECK(cudaEventRecord(start,filterStream));
@@ -551,6 +551,8 @@ fft_dims.y = 1;
   // Free the memory
   CUDA_ERROR_CHECK(cudaFree(device_real));
   CUDA_ERROR_CHECK(cudaFree(device_imag));
+  CUDA_ERROR_CHECK(cudaFree(cos_t));
+  CUDA_ERROR_CHECK(cudaFree(sin_t));
 
   // Dump some usage statistics
   printf("CUDA IMPLEMENTATION STATISTICS:\n");
