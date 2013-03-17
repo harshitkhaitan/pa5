@@ -1,0 +1,16 @@
+**************************************************************************************
+PA5  Implementation
+**************************************************************************************
+THIS IS A GROUP SUBMISSION:
+**************************************************************************************
+Harshit Khaitan : hkhaitan@stanford.edu
+Avinash Parthasarathy : avinash1@stanford.edu
+**************************************************************************************
+
+The functional algorithm used is the same as provided. 
+
+We are getting overal 2980x speedup. Here are the things we are doing to achieve speedup. 
+
+1. Pre-Compute cos(term) and sin(term) once for the complete n*n set and use in all threads. 
+2. Use shared memory with coaleshed accesses to read the images. 
+3. Number of thread on a block is proportional to the image dimension. 
